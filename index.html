@@ -1,23 +1,175 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>My Simple Website</title>
-	<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dify Chatbot</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #chat-widget {
+            width: 400px;
+            height: 600px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #chat-header {
+            background-color: #1d90f5;
+            color: white;
+            padding: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+        #chat-messages {
+            flex-grow: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #1d90f5;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .bot-message {
+            background-color: #e9e9eb;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        #chat-form {
+            display: flex;
+            padding: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+        #chat-input {
+            flex-grow: 1;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 16px;
+            outline: none;
+        }
+        #chat-input:focus {
+            border-color: #1d90f5;
+        }
+        #send-button {
+            background-color: #1d90f5;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            margin-left: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #send-button:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
-	<header>
-		<h1>ようこそ！</h1>
-		<p>これは GitHub Pages で公開する簡単なウェブサイトです。</p>
-	</header>
-	<main>
-		<button id="helloBtn">挨拶する</button>
-		<p id="message"></p>
-	</main>
-	<footer>
-		<small>© 2025 My Simple Website</small>
-	</footer>
-	<script src="script.js"></script>
+
+<div id="chat-widget">
+    <div id="chat-header">AI Chatbot</div>
+    <div id="chat-messages"></div>
+    <form id="chat-form">
+        <input type="text" id="chat-input" placeholder="メッセージを入力..." autocomplete="off">
+        <button type="submit" id="send-button">➤</button>
+    </form>
+</div>
+
+<script>
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const sendButton = document.getElementById('send-button');
+    const messagesContainer = document.getElementById('chat-messages');
+
+    let conversationId = sessionStorage.getItem('difyConversationId');
+
+    chatForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const userInput = chatInput.value.trim();
+        if (!userInput) return;
+
+        addMessage(userInput, 'user-message');
+        chatInput.value = '';
+        sendButton.disabled = true;
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: userInput,
+                    conversation_id: conversationId || ''
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'サーバーでエラーが発生しました。');
+            }
+
+            const data = await response.json();
+            
+            conversationId = data.conversation_id;
+            sessionStorage.setItem('difyConversationId', conversationId);
+
+            addMessage(data.answer, 'bot-message');
+
+        } catch (error) {
+            console.error('Error:', error);
+            addMessage(`エラー: ${error.message}`, 'error-message');
+        } finally {
+            sendButton.disabled = false;
+        }
+    });
+
+    function addMessage(text, className) {
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${className}`;
+        messageElement.textContent = text;
+        messagesContainer.appendChild(messageElement);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    window.onload = () => {
+        addMessage('こんにちは！何かお話ししましょう。', 'bot-message');
+    };
+</script>
+
 </body>
 </html>
