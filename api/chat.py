@@ -33,7 +33,8 @@ class handler(BaseHTTPRequestHandler):
 
         # --- 3. Dify APIにリクエストを送信する ---
         dify_payload = {
-            "inputs": {"query": user_query},
+            "inputs": {},  # inputsは空にする
+            "query": user_query,  # queryをトップレベルに移動
             "response_mode": "blocking",
             "user": "secure-web-user",
             "conversation_id": conversation_id or ""
